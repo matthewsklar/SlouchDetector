@@ -7,22 +7,33 @@ import java.util.*
  * @since 6/18/2016
  */
 
-class FaceDataProcesser() {
+class FaceDataProcessor(faceDetector: FaceDetector, setup: Setup) {
+    private var faceDetector: FaceDetector = faceDetector
+    private var setup: Setup = setup
+
     fun run() {
-        var timer: Timer = Timer()
-        timer.schedule(FaceDataProcesserTask(), 0, 10000)
+        val timer: Timer = Timer()
+        timer.schedule(FaceDataProcessorTask(faceDetector, setup), 0, 10000)
     }
 }
 
-class FaceDataProcesserTask() : TimerTask() {
-    private val faceDetector: FaceDetector = FaceDetector()
+class FaceDataProcessorTask(faceDetector: FaceDetector, setup: Setup) : TimerTask() {
+    private val faceDetector: FaceDetector = faceDetector
+    private val setup: Setup = setup
+
     private var reference: Pair<Rect?, Int>? = null
     private var averageY: Int = 0
+    private var slouchDifference: Int = 30 // Guess
+
 
     override fun run() {
+        val postureBorder: Int
+
         var totalY: Int = 0
 
-        for (i in 0..10) {
+        val sampleSize: Int = 50
+
+        for (i in 0..sampleSize) {
             var newTotalY: Int = totalY
 
             while (totalY == newTotalY) {
@@ -30,14 +41,14 @@ class FaceDataProcesserTask() : TimerTask() {
 
                 if (reference!!.first != null) {
                     newTotalY += reference!!.first!!.y + reference!!.second
-                } else {
-                    println("faces = null")
                 }
             }
 
             totalY = newTotalY
         }
 
-        println(totalY / 10)
+        averageY = totalY / sampleSize
+        postureBorder = setup.goodPostureCalibration + slouchDifference
+        println("{$averageY} " + if (averageY < postureBorder) "< {$postureBorder}: Good" else "> {$postureBorder}: Slouching")
     }
 }
